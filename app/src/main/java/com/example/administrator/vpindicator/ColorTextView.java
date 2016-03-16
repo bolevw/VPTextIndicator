@@ -2,6 +2,7 @@ package com.example.administrator.vpindicator;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -86,8 +87,44 @@ public class ColorTextView extends View {
 
         mRealWidth = getMeasuredWidth() - getPaddingLeft() - getPaddingRight();
         mTextStratX = mRealWidth / 2 - mTextWidth / 2;
+
     }
 
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
+        int r = (int) (progress * mTextWidth + mTextStratX);
+
+        if (mDirection == DIRECTION_LEFT) {
+            drawChangeLeft(canvas, r);
+            drawOriginLeft(canvas, r);
+        } else {
+            drawChangeRight(canvas, r);
+            drawOriginRight(canvas, r);
+        }
+    }
+
+    public void drawChangeLeft(Canvas canvas, int progress) {
+
+    }
+
+    public void drawOriginLeft(Canvas canvas, int progress) {
+
+    }
+
+    public void drawChangeRight(Canvas canvas, int progress) {
+
+    }
+
+    public void drawOriginRight(Canvas canvas, int progress) {
+
+    }
+
+    public void drawText(Canvas canvas, int start, int end, int color) {
+        mPaint.setColor(color);
+        canvas.save(Canvas.CLIP_SAVE_FLAG);
+    }
 
     private int measureHeight(int heightMeasureSpec) {
         int model = MeasureSpec.getMode(heightMeasureSpec);
