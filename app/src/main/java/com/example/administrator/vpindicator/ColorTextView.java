@@ -1,5 +1,6 @@
 package com.example.administrator.vpindicator;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -7,12 +8,15 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 /**
  * Created by Administrator on 2016/3/16.
  */
 public class ColorTextView extends View {
+
+    private static final String TAG = "ColorTextView";
 
 
     private int mTextStratX;
@@ -35,8 +39,8 @@ public class ColorTextView extends View {
 
     private int textSize = sp2px(30);
 
-    private int textOriginColor = 0xff000000;
-    private int textChangeColor = 0xffff0000;
+    private int textOriginColor = Color.BLACK;
+    private int textChangeColor = Color.RED;
 
     private Rect bound = new Rect();
 
@@ -55,14 +59,15 @@ public class ColorTextView extends View {
         super(context, attrs);
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ColorTextView);
+        TypedArray a = context.obtainStyledAttributes(attrs,
+                R.styleable.ColorTextView);
 
-        text = a.getString(a.getIndex(R.styleable.ColorTextView_text));
-        mDirection = a.getInt(a.getIndex(R.styleable.ColorTextView_direction), DIRECTION_LEFT);
-        textSize = a.getDimensionPixelSize(a.getIndex(R.styleable.ColorTextView_text_size), sp2px(14));
-        textOriginColor = a.getColor(a.getIndex(R.styleable.ColorTextView_text_origin_color), Color.BLACK);
-        textChangeColor = a.getColor(a.getIndex(R.styleable.ColorTextView_text_change_color), Color.YELLOW);
-        progress = a.getFloat(a.getIndex(R.styleable.ColorTextView_progress), 0);
+        text = a.getString(R.styleable.ColorTextView_text);
+        mDirection = a.getInt(R.styleable.ColorTextView_direction, DIRECTION_LEFT);
+        textSize = a.getDimensionPixelSize(R.styleable.ColorTextView_text_size, sp2px(30));
+        textOriginColor = a.getColor(R.styleable.ColorTextView_text_origin_color, Color.BLACK);
+        textChangeColor = a.getColor(R.styleable.ColorTextView_text_change_color, Color.YELLOW);
+        progress = a.getFloat(R.styleable.ColorTextView_progress, 0);
 
         a.recycle();
 
@@ -94,36 +99,38 @@ public class ColorTextView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        int r = (int) (progress * mTextWidth + mTextStratX);
-
         if (mDirection == DIRECTION_LEFT) {
-            drawChangeLeft(canvas, r);
-            drawOriginLeft(canvas, r);
+            drawChangeLeft(canvas);
+            drawOriginLeft(canvas);
         } else {
-            drawChangeRight(canvas, r);
-            drawOriginRight(canvas, r);
+            drawChangeRight(canvas);
+            drawOriginRight(canvas);
         }
     }
 
-    public void drawChangeLeft(Canvas canvas, int progress) {
-
+    public void drawChangeLeft(Canvas canvas) {
+        drawText(canvas, mTextStratX, (int) (mTextStratX + progress * mTextWidth), textChangeColor);
     }
 
-    public void drawOriginLeft(Canvas canvas, int progress) {
-
+    public void drawOriginLeft(Canvas canvas) {
+        drawText(canvas, (int) (mTextStratX + progress * mTextWidth), mTextStratX + mTextWidth, textOriginColor);
     }
 
-    public void drawChangeRight(Canvas canvas, int progress) {
-
+    public void drawChangeRight(Canvas canvas) {
+        drawText(canvas, (int) (mTextStratX + (1 - progress) * mTextWidth), mTextStratX + mTextWidth, textChangeColor);
     }
 
-    public void drawOriginRight(Canvas canvas, int progress) {
-
+    public void drawOriginRight(Canvas canvas) {
+        drawText(canvas, mTextStratX, (int) (mTextStratX + (1 - progress) * mTextWidth), textOriginColor);
     }
 
     public void drawText(Canvas canvas, int start, int end, int color) {
         mPaint.setColor(color);
         canvas.save(Canvas.CLIP_SAVE_FLAG);
+        canvas.clipRect(start, 0, end, getMeasuredHeight());
+        canvas.drawText(text, mTextStratX, getMeasuredHeight() / 2
+                + bound.height() / 2, mPaint);
+        canvas.restore();
     }
 
     private int measureHeight(int heightMeasureSpec) {
@@ -135,11 +142,14 @@ public class ColorTextView extends View {
             case MeasureSpec.EXACTLY:
                 result = val;
                 break;
-            case MeasureSpec.AT_MOST:
-            case MeasureSpec.UNSPECIFIED:
+            case MeasureSpec.AT_MOST: // 求出自己测绘出view的大小以及系统测绘出view大小之间最小值
                 result = Math.min(val, bound.height());
                 break;
+            case MeasureSpec.UNSPECIFIED:
+                result = bound.height();
+                break;
         }
+        Log.d(TAG, "height " + result);
         return result + getPaddingBottom() + getPaddingTop();
     }
 
@@ -153,10 +163,13 @@ public class ColorTextView extends View {
                 result = size;
                 break;
             case MeasureSpec.AT_MOST:
-            case MeasureSpec.UNSPECIFIED:
                 result = Math.min(size, mTextWidth);
                 break;
+            case MeasureSpec.UNSPECIFIED:
+                result = mTextWidth;
+                break;
         }
+        Log.d(TAG, "width " + result);
         return result + getPaddingLeft() + getPaddingRight();
     }
 
@@ -165,6 +178,26 @@ public class ColorTextView extends View {
             value = 14;
         }
         return (int) (getResources().getDisplayMetrics().density * value + 0.5f);
+    }
+
+
+    public float getProgress() {
+        return progress;
+    }
+
+    public void setProgress(float progress) {
+        this.progress = progress;
+        invalidate(); // 通过属性动画调用，要及时重绘view
+    }
+
+    public void beginLeft() {
+        this.setDirection(DIRECTION_LEFT);
+        ObjectAnimator.ofFloat(this, "progress", 0, 1).setDuration(2000).start();
+    }
+
+    public void beginRight() {
+        this.setDirection(DIRECTION_RIGHT);
+        ObjectAnimator.ofFloat(this, "progress", 0, 1).setDuration(2000).start();
     }
 
 
